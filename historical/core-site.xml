@@ -1,0 +1,14 @@
+<configuration>
+    <property>
+        <name>fs.default.name</name>
+        <value>hdfs://druid-hdfs.myproject.svc:9000</value>
+    </property>
+    <property>
+        <name>fs.defaultFS</name>
+        <value>hdfs://druid-hdfs.myproject.svc:9000</value>
+    </property>
+    <property>
+        <name>mapred.job.tracker</name>
+        <value>local</value>
+    </property>
+</configuration>

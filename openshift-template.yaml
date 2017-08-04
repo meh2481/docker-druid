@@ -1,0 +1,344 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: druid
+  annotations:
+    description: Druid
+    tags: messaging,streaming,druid
+objects:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-hdfs
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-hdfs
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-hdfs
+      spec:
+        containers:
+        - name: hdfs-namenode
+          image: ceagan/druid-openshift:hdfs-namenode
+          ports:
+          - containerPort: 9000
+          - containerPort: 9870
+          - containerPort: 50070
+        - name: hdfs-datanode
+          image: ceagan/druid-openshift:hdfs-datanode
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-mysql
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-mysql
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-mysql
+      spec:
+        containers:
+        - name: mysql
+          image: mysql:5.6
+          args:
+          - --character-set-server=utf8
+          - --collation-server=utf8_general_ci
+          env:
+          - name: MYSQL_DATABASE
+            value: druid
+          - name: MYSQL_USER
+            value: druid
+          - name: MYSQL_PASSWORD
+            value: druid
+          - name: MYSQL_RANDOM_ROOT_PASSWORD
+            value: "yes"
+          ports:
+          - containerPort: 3306
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-zookeeper
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-zookeeper
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-zookeeper
+      spec:
+        containers:
+        - name: zookeeper
+          image: xdevelsistemas/debian-env:zookeeper-env
+          ports:
+          - containerPort: 2181
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-overlord
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-overlord
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-overlord
+      spec:
+        containers:
+        - name: overlord
+          image: ceagan/druid-openshift:0.10.0-overlord
+          env:
+          - name: JAVA_OPTS
+            value: -Xmx4g -XX:MaxDirectMemorySize=3221225472
+          - name: TIMEZONE
+            value: GMT-3
+          - name: HADOOP_URL
+            value: /druid
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          - name: MYSQL_JDBC_URL
+            value: jdbc:mysql://$(DRUID_MYSQL_SERVICE_HOST):$(DRUID_MYSQL_SERVICE_PORT)/druid
+          - name: MYSQL_PASS
+            value: druid
+          - name: MYSQL_USER
+            value: druid
+          - name: INDEXER_JAVA_OPTS
+            value: -server -Xmx3g -XX:MaxDirectMemorySize=2147483648
+          - name: INDEXER_DELAY
+            value: PT2M
+          ports:
+          - containerPort: 8090
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-historical
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-historical
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-historical
+      spec:
+        containers:
+        - name: historical
+          image: ceagan/druid-openshift:0.10.0-historical
+          env:
+          - name: JAVA_OPTS
+            value: -Xmx3g -XX:MaxDirectMemorySize=2147483648
+          - name: TIMEZONE
+            value: GMT-3
+          - name: BUFFER_SIZE
+            value: '67108864'
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          - name: SERVER_MAX_SIZE
+            value: '5000000000'
+          - name: SEGMENT_CACHE_LOCATIONS
+            value: '[{\"path\":\"/var/tmp/druid/indexCache\",\"maxSize\":5000000000}]'
+          - name: HADOOP_URL
+            value: /druid
+          - name: NUM_THREADS
+            value: '10'
+          ports:
+          - containerPort: 8083
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-coordinator
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-coordinator
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-coordinator
+      spec:
+        containers:
+        - name: coordinator
+          image: ceagan/druid-openshift:0.10.0-coordinator
+          env:
+          - name: JAVA_OPTS
+            value: -Xmx3g -XX:MaxDirectMemorySize=2147483648
+          - name: TIMEZONE
+            value: GMT-3
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          - name: MYSQL_JDBC_URL
+            value: jdbc:mysql://$(DRUID_MYSQL_SERVICE_HOST):$(DRUID_MYSQL_SERVICE_PORT)/druid
+          - name: MYSQL_PASS
+            value: druid
+          - name: MYSQL_USER
+            value: druid
+          - name: COORDINATOR_DELAY
+            value: PT5S
+          ports:
+          - containerPort: 8081
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-broker
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-broker
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-broker
+      spec:
+        containers:
+        - name: broker
+          image: ceagan/druid-openshift:0.10.0-broker
+          env:
+          - name: JAVA_OPTS
+            value: -Xmx4g -XX:MaxDirectMemorySize=3221225472
+          - name: TIMEZONE
+            value: GMT-3
+          - name: BUFFER_SIZE
+            value: '67108864'
+          - name: CACHE_SIZE
+            value: '33554432'
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          ports:
+          - containerPort: 8082
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-mysql
+  spec:
+    ports:
+    - name: mysql
+      port: 3306
+    selector:
+      deploymentconfig: druid-mysql
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-hdfs
+  spec:
+    ports:
+    - name: web
+      port: 50070
+    - name: hdfs
+      port: 9000
+    selector:
+      deploymentconfig: druid-hdfs
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-zookeeper
+  spec:
+    ports:
+    - name: zookeeper
+      port: 2181
+    selector:
+      deploymentconfig: druid-zookeeper
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-overlord
+  spec:
+    ports:
+    - name: overlord
+      port: 8090
+    selector:
+      deploymentconfig: druid-overlord
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-historical
+  spec:
+    ports:
+    - name: historical
+      port: 8083
+    selector:
+      deploymentconfig: druid-historical
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-coordinator
+  spec:
+    ports:
+    - name: coordinator
+      port: 8081
+    selector:
+      deploymentconfig: druid-coordinator
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-broker
+  spec:
+    ports:
+    - name: broker
+      port: 8082
+    selector:
+      deploymentconfig: druid-broker
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-hdfs
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-hdfs
+    port:
+      targetPort: web
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-overlord
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-overlord
+    port:
+      targetPort: overlord
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-broker
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-broker
+    port:
+      targetPort: broker
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-historical
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-historical
+    port:
+      targetPort: historical
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-coordinator
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-coordinator
+    port:
+      targetPort: coordinator

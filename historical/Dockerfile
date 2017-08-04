@@ -1,4 +1,4 @@
-FROM prodest/druid:0.9.0-base
+FROM ceagan/druid-openshift:0.10.0-base
 
 # Expose ports:
 # - 8081: HTTP (coordinator)
@@ -11,14 +11,10 @@ FROM prodest/druid:0.9.0-base
 EXPOSE 8083
 
 # Setup supervisord
-ADD supervisord.conf /etc/supervisor/conf.d/historical/supervisord.conf
-
+COPY supervisord.conf /etc/supervisor/conf.d/historical/supervisord.conf
+COPY core-site.xml /etc/hadoop/core-site.xml
 
 WORKDIR /var/lib/druid
 
-
-
-
 ENTRYPOINT exec /usr/bin/supervisord -c /etc/supervisor/conf.d/historical/supervisord.conf
-
 
