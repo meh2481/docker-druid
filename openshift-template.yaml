@@ -21,13 +21,13 @@ objects:
       spec:
         containers:
         - name: hdfs-namenode
-          image: ceagan/druid-openshift:hdfs-namenode
+          image: mhutcheson/druid-openshift:hdfs-namenode
           ports:
           - containerPort: 9000
           - containerPort: 9870
           - containerPort: 50070
         - name: hdfs-datanode
-          image: ceagan/druid-openshift:hdfs-datanode
+          image: mhutcheson/druid-openshift:hdfs-datanode
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
