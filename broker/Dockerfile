@@ -1,4 +1,4 @@
-FROM ceagan/druid-openshift:0.10.0-base
+FROM mhutcheson/druid-openshift-base
 
 # Expose ports:
 # - 8081: HTTP (coordinator)

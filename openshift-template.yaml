@@ -21,13 +21,13 @@ objects:
       spec:
         containers:
         - name: hdfs-namenode
-          image: mhutcheson/druid-openshift:hdfs-namenode
+          image: mhutcheson/druid-hdfs-namenode
           ports:
           - containerPort: 9000
           - containerPort: 9870
           - containerPort: 50070
         - name: hdfs-datanode
-          image: mhutcheson/druid-openshift:hdfs-datanode
+          image: mhutcheson/druid-hdfs-datanode
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -91,7 +91,7 @@ objects:
       spec:
         containers:
         - name: overlord
-          image: ceagan/druid-openshift:0.10.0-overlord
+          image: mhutcheson/druid-openshift-overlord
           env:
           - name: JAVA_OPTS
             value: -Xmx4g -XX:MaxDirectMemorySize=3221225472
@@ -128,7 +128,7 @@ objects:
       spec:
         containers:
         - name: historical
-          image: ceagan/druid-openshift:0.10.0-historical
+          image: mhutcheson/druid-openshift-historical
           env:
           - name: JAVA_OPTS
             value: -Xmx3g -XX:MaxDirectMemorySize=2147483648
@@ -163,7 +163,7 @@ objects:
       spec:
         containers:
         - name: coordinator
-          image: ceagan/druid-openshift:0.10.0-coordinator
+          image: mhutcheson/druid-openshift-coordinator
           env:
           - name: JAVA_OPTS
             value: -Xmx3g -XX:MaxDirectMemorySize=2147483648
@@ -196,7 +196,7 @@ objects:
       spec:
         containers:
         - name: broker
-          image: ceagan/druid-openshift:0.10.0-broker
+          image: mhutcheson/druid-openshift-broker
           env:
           - name: JAVA_OPTS
             value: -Xmx4g -XX:MaxDirectMemorySize=3221225472
