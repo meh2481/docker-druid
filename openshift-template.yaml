@@ -113,6 +113,44 @@ objects:
             value: PT2M
           ports:
           - containerPort: 8090
+          - containerPort: 8100
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-middlemanager
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-middlemanager
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-middlemanager
+      spec:
+        containers:
+        - name: middlemanager
+          image: mhutcheson/druid-middlemanager:1.1
+          env:
+          - name: JAVA_OPTS
+            value: -Xmx4g -XX:MaxDirectMemorySize=3221225472
+          - name: TIMEZONE
+            value: GMT-3
+          - name: HADOOP_URL
+            value: /druid
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          - name: MYSQL_JDBC_URL
+            value: jdbc:mysql://$(DRUID_MYSQL_SERVICE_HOST):$(DRUID_MYSQL_SERVICE_PORT)/druid
+          - name: MYSQL_PASS
+            value: druid
+          - name: MYSQL_USER
+            value: druid
+          - name: INDEXER_JAVA_OPTS
+            value: -server -Xmx3g -XX:MaxDirectMemorySize=2147483648
+          - name: INDEXER_DELAY
+            value: PT2M
+          ports:
+          - containerPort: 8091
 - apiVersion: v1
   kind: DeploymentConfig
   metadata:
@@ -211,6 +249,27 @@ objects:
           ports:
           - containerPort: 8082
 - apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: druid-tranquility
+  spec:
+    replicas: 1
+    selector:
+      deploymentconfig: druid-tranquility
+    template:
+      metadata:
+        labels:
+          deploymentconfig: druid-tranquility
+      spec:
+        containers:
+        - name: druid-tranquility
+          image: mhutcheson/druid-tranquility:1.2
+          env:
+          - name: ZOOKEEPER_HOST
+            value: $(DRUID_ZOOKEEPER_SERVICE_HOST)
+          ports:
+          - containerPort: 8200
+- apiVersion: v1
   kind: Service
   metadata:
     name: druid-mysql
@@ -250,8 +309,22 @@ objects:
     ports:
     - name: overlord
       port: 8090
+    - name: index
+      port: 8100
     selector:
       deploymentconfig: druid-overlord
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-middlemanager
+  spec:
+    ports:
+    - name: middlemanager
+      port: 8091
+    - name: indexer
+      port: 8100
+    selector:
+      deploymentconfig: druid-middlemanager
 - apiVersion: v1
   kind: Service
   metadata:
@@ -283,6 +356,16 @@ objects:
     selector:
       deploymentconfig: druid-broker
 - apiVersion: v1
+  kind: Service
+  metadata:
+    name: druid-tranquility
+  spec:
+    ports:
+    - name: tranquility
+      port: 8200
+    selector:
+      deploymentconfig: druid-tranquility
+- apiVersion: v1
   kind: Route
   metadata:
     name: druid-hdfs
@@ -306,6 +389,30 @@ objects:
       name: druid-overlord
     port:
       targetPort: overlord
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-index
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-middlemanager
+    port:
+      targetPort: indexer
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-middlemanager
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-middlemanager
+    port:
+      targetPort: middlemanager
 - apiVersion: v1
   kind: Route
   metadata:
@@ -342,3 +449,15 @@ objects:
       name: druid-coordinator
     port:
       targetPort: coordinator
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-tranquility
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-tranquility
+    port:
+      targetPort: tranquility
