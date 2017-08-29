@@ -323,6 +323,8 @@ objects:
       port: 8091
     - name: indexer
       port: 8100
+    - name: indexertwo
+      port: 8101
     selector:
       deploymentconfig: druid-middlemanager
 - apiVersion: v1
@@ -401,6 +403,18 @@ objects:
       name: druid-middlemanager
     port:
       targetPort: indexer
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: druid-indextwo
+    annotations:
+      openshift.io/host.generated: "true"
+  spec:
+    to:
+      kind: Service
+      name: druid-middlemanager
+    port:
+      targetPort: indexertwo
 - apiVersion: v1
   kind: Route
   metadata:
